@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aaron Rea — Cloud Security &amp; Infrastructure</title>
+<meta name="description" content="Aaron Rea — cloud security, infrastructure automation, and the notes that come out of both.">
+<style>
+/* ---------- palette: Circuit Mint --------------------------------------- */
+:root {
+  --bg:        #eef3ef;  /* pale phosphor wash                              */
+  --bg-2:      #e2eae4;
+  --surface:   #fbfdfb;
+  --ink:       #0d1a13;  /* near-black with a green cast                    */
+  --ink-soft:  #48594f;
+  --ink-faint: #86968c;
+  --line:      #cfdcd4;
+  --accent:    #007a50;  /* terminal green — 4.8:1 on --bg, 4.5:1 on chips  */
+  --accent-lo: #d8f2e6;
+  --hot:       #b34a08;  /* signal orange — 4.8:1 on --bg, 4.5:1 on chips   */
+  --hot-lo:    #ffe8d6;
+  --glow:      0 0 0 1px rgba(0,122,80,.18), 0 6px 24px -12px rgba(0,122,80,.55);
+}
+
+/* ---------- base -------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 50% at 50% -10%, var(--accent-lo), transparent 70%);
+  background-size: 64px 64px, 64px 64px, 100% 100%;
+  color: var(--ink);
+  font: 400 16px/1.65 ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+body::after { /* faint scanline wash */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,.022) 0 1px, transparent 1px 3px);
+}
+.mono { font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace; }
+a { color: inherit; }
+h1, h2, h3 { line-height: 1.15; letter-spacing: -.02em; margin: 0; }
+.wrap { width: min(1080px, 100% - 2.5rem); margin-inline: auto; position: relative; z-index: 2; }
+
+/* clipped "chamfered" corners — the cyberpunk tell, used lightly */
+.chamfer { clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+
+.label {
+  font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--accent);
+}
+.label::before { content: "// "; color: var(--hot); }
+
+/* ---------- nav --------------------------------------------------------- */
+header.nav {
+  position: sticky; top: 0; z-index: 10;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+.nav-in { display: flex; align-items: center; gap: 1.5rem; height: 60px; }
+.brand { font-weight: 650; letter-spacing: -.01em; margin-right: auto; }
+.brand span { color: var(--hot); }
+.nav a.link {
+  text-decoration: none; font-size: 14px; color: var(--ink-soft);
+  padding: 4px 2px; border-bottom: 2px solid transparent;
+}
+.nav a.link:hover { color: var(--ink); border-bottom-color: var(--hot); }
+@media (max-width: 660px) { .nav a.link { display: none; } .nav a.link.keep { display: inline; } }
+
+/* ---------- hero -------------------------------------------------------- */
+.hero { padding: 5.5rem 0 4rem; display: grid; grid-template-columns: 1.15fr .85fr; gap: 3rem; align-items: center; }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding-top: 3.5rem; } }
+.hero h1 { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 700; }
+.hero h1 em {
+  font-style: normal; color: var(--accent);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.hero p.lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 46ch; margin: 1.1rem 0 1.9rem; }
+.cta { display: flex; flex-wrap: wrap; gap: .7rem; }
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem; text-decoration: none;
+  padding: .62rem 1.05rem; font-size: 14px; font-weight: 550;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.btn:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--glow); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* terminal card */
+.term { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--glow); font-size: 13px; }
+.term-bar { display: flex; align-items: center; gap: 6px; padding: .55rem .8rem; border-bottom: 1px solid var(--line); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.dot.a { background: var(--hot); } .dot.b { background: var(--accent); }
+.term-bar span { margin-left: auto; color: var(--ink-faint); font-size: 11px; }
+.term pre { margin: 0; padding: 1rem; overflow-x: auto; color: var(--ink-soft); }
+.term .k { color: var(--hot); } .term .v { color: var(--accent); } .term .c { color: var(--ink-faint); }
+
+/* ---------- sections ---------------------------------------------------- */
+section { padding: 4rem 0; border-top: 1px solid var(--line); }
+.sec-head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.sec-head h2 { font-size: clamp(1.6rem, 3.4vw, 2.1rem); }
+.sec-head .rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--hot), transparent); min-width: 40px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chip {
+  font: 500 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: .45rem .7rem; background: var(--accent-lo); color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.chip.alt { background: var(--hot-lo); color: var(--hot); border-color: color-mix(in srgb, var(--hot) 22%, transparent); }
+
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.card {
+  background: var(--surface); border: 1px solid var(--line); padding: 1.25rem 1.35rem;
+  display: flex; flex-direction: column; gap: .55rem; text-decoration: none;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+a.card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--glow); }
+.card h3 { font-size: 1.05rem; }
+.card p { margin: 0; font-size: .92rem; color: var(--ink-soft); }
+.card .meta { margin-top: auto; padding-top: .6rem; font: 500 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-faint); letter-spacing: .08em; text-transform: uppercase; }
+
+/* writing list */
+.posts { border-top: 1px solid var(--line); }
+.post {
+  display: grid; grid-template-columns: 110px 1fr auto; gap: 1.25rem; align-items: baseline;
+  padding: 1.15rem .4rem; border-bottom: 1px solid var(--line); text-decoration: none;
+}
+.post:hover { background: var(--surface); }
+.post:hover h3 { color: var(--accent); }
+.post time { font: 500 12px/1.6 ui-monospace, Menlo, monospace; color: var(--ink-faint); }
+.post h3 { font-size: 1.02rem; font-weight: 600; transition: color .12s; }
+.post p { margin: .25rem 0 0; font-size: .9rem; color: var(--ink-soft); }
+.post .tag { font: 500 11px/1 ui-monospace, Menlo, monospace; color: var(--hot); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+@media (max-width: 660px) { .post { grid-template-columns: 1fr; gap: .35rem; } .post .tag { order: -1; } }
+
+/* about */
+.about { display: grid; grid-template-columns: 1fr 300px; gap: 3rem; }
+@media (max-width: 860px) { .about { grid-template-columns: 1fr; } }
+.about p { color: var(--ink-soft); }
+.about p strong { color: var(--ink); font-weight: 600; }
+.side { background: var(--surface); border: 1px solid var(--line); padding: 1.25rem; height: fit-content; }
+.side dt { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.side dd { margin: .35rem 0 1rem; font-size: .93rem; }
+.side dd:last-child { margin-bottom: 0; }
+
+footer { padding: 2.5rem 0 3.5rem; border-top: 1px solid var(--line); }
+.foot-in { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; font-size: 13px; color: var(--ink-faint); }
+.foot-in a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--line); }
+.foot-in a:hover { color: var(--accent); border-color: var(--accent); }
+.foot-in .sep { color: var(--line); margin: 0 .35em; }
+.foot-in b { color: var(--ink-soft); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <div class="brand mono">aaron<span>_</span>rea</div>
+    <a class="link" href="#writing">Writing</a>
+    <a class="link" href="#work">Work</a>
+    <a class="link" href="#about">About</a>
+    <a class="link keep" href="https://github.com/Aaronrea">GitHub</a>
+    <a class="link keep" href="https://www.linkedin.com/in/aaronmrea/">LinkedIn</a>
+  </div>
+</header>
+
+<main>
+<div class="wrap hero">
+  <div>
+    <p class="label">Cloud security · Infrastructure</p>
+    <h1>I break cloud environments, then <em>build them back safer.</em></h1>
+    <p class="lede">Aaron Rea — security engineering, infrastructure-as-code, and the write-ups that come out of both. Based in Florida.</p>
+    <div class="cta">
+      <a class="btn primary chamfer" href="#writing">Read the notes →</a>
+      <a class="btn chamfer" href="https://github.com/Aaronrea">GitHub</a>
+      <a class="btn chamfer" href="https://www.linkedin.com/in/aaronmrea/">LinkedIn</a>
+    </div>
+  </div>
+  <div class="term chamfer">
+    <div class="term-bar"><i class="dot a"></i><i class="dot b"></i><i class="dot"></i><span>~/whoami</span></div>
+<pre class="mono"><span class="c"># focus</span>
+<span class="k">cloud</span>   = [<span class="v">"aws"</span>, <span class="v">"iam"</span>, <span class="v">"detection"</span>]
+<span class="k">iac</span>     = [<span class="v">"terraform"</span>, <span class="v">"vault"</span>]
+<span class="k">langs</span>   = [<span class="v">"go"</span>, <span class="v">"python"</span>, <span class="v">"hcl"</span>]
+<span class="k">offsec</span>  = [<span class="v">"pacu"</span>, <span class="v">"ctf"</span>, <span class="v">"lab-work"</span>]
+
+<span class="c"># also: mechanical keyboards, qmk</span></pre>
+  </div>
+</div>
+
+<section id="writing">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="label" style="margin:0">Writing</p>
+      <h2>Notes from the terminal</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="posts">
+      <a class="post" href="#">
+        <time datetime="2026-07-30">2026.07.30</time>
+        <div>
+          <h3>Least-privilege IAM without grinding the team to a halt</h3>
+          <p>A practical loop for tightening AWS policies using access-analyzer data instead of guesswork.</p>
+        </div>
+        <span class="tag">AWS</span>
+      </a>
+      <a class="post" href="#">
+        <time datetime="2026-06-18">2026.06.18</time>
+        <div>
+          <h3>Running Vault on integrated storage: what the reference architecture leaves out</h3>
+          <p>Unseal flows, quorum loss, and the Terraform bits that bite you on day two.</p>
+        </div>
+        <span class="tag">Terraform</span>
+      </a>
+      <a class="post" href="#">
+        <time datetime="2026-05-02">2026.05.02</time>
+        <div>
+          <h3>Pacu against a hardened account: where the framework stops</h3>
+          <p>Notes from a scoped engagement — which modules still land, and what actually blocked them.</p>
+        </div>
+        <span class="tag">Offsec</span>
+      </a>
+      <a class="post" href="#">
+        <time datetime="2026-03-21">2026.03.21</time>
+        <div>
+          <h3>Small Go tools beat big dashboards</h3>
+          <p>Three single-binary utilities that replaced a monitoring stack nobody logged into.</p>
+        </div>
+        <span class="tag">Go</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="work">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="label" style="margin:0">Work</p>
+      <h2>Things I&rsquo;ve built &amp; contributed to</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="grid">
+      <a class="card chamfer" href="https://github.com/Aaronrea/terraform-aws-vault-starter">
+        <h3>terraform-aws-vault-starter</h3>
+        <p>Terraform module that provisions an OSS Vault cluster on integrated storage, following the HashiCorp reference architecture.</p>
+        <div class="meta">HCL · Infrastructure</div>
+      </a>
+      <a class="card chamfer" href="https://github.com/Aaronrea/pacu">
+        <h3>pacu</h3>
+        <p>The AWS exploitation framework for testing the security of Amazon Web Services environments.</p>
+        <div class="meta">Python · Offensive security</div>
+      </a>
+      <a class="card chamfer" href="https://github.com/Aaronrea/gofordevopsclass">
+        <h3>Go for DevOps</h3>
+        <p>Course materials from the GopherCon class — Go as the glue for operational tooling.</p>
+        <div class="meta">Go · Teaching</div>
+      </a>
+      <a class="card chamfer" href="https://github.com/Aaronrea/jupiterbroadcasting.com">
+        <h3>jupiterbroadcasting.com</h3>
+        <p>Community-driven Hugo rebuild of the Jupiter Broadcasting site.</p>
+        <div class="meta">Hugo · Open source</div>
+      </a>
+      <a class="card chamfer" href="https://github.com/Aaronrea/qmk_firmware">
+        <h3>qmk_firmware</h3>
+        <p>Open-source keyboard firmware for AVR and Arm USB families. Yes, the layout is custom.</p>
+        <div class="meta">C · Firmware</div>
+      </a>
+      <a class="card chamfer" href="https://github.com/Aaronrea?tab=repositories">
+        <h3>More on GitHub →</h3>
+        <p>Thirteen public repos and counting: labs, dotfiles, and half-finished good ideas.</p>
+        <div class="meta">All repositories</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="wrap about">
+    <div>
+      <div class="sec-head">
+        <p class="label" style="margin:0">About</p>
+        <h2>Aaron Rea</h2>
+        <div class="rule"></div>
+      </div>
+      <p><strong>[Placeholder — Aaron to replace.]</strong> Two or three paragraphs here: current role and employer, the kind of problems you get handed, and what you actually enjoy about the work. Concrete beats abstract — &ldquo;I run the IAM review process for N accounts&rdquo; lands harder than &ldquo;passionate about security.&rdquo;</p>
+      <p>Second paragraph: the through-line of your career so far, and where you want it pointed next. If you speak at meetups, teach, or maintain anything, this is where it goes.</p>
+      <p>Third: the human bit. Florida, keyboards, whatever you want people to remember.</p>
+      <div class="chips" style="margin-top:1.5rem">
+        <span class="chip">AWS</span><span class="chip">Terraform</span><span class="chip">Vault</span>
+        <span class="chip">Go</span><span class="chip">Python</span><span class="chip alt">Threat modeling</span>
+        <span class="chip alt">Incident response</span><span class="chip alt">CTF</span>
+      </div>
+    </div>
+    <aside class="side chamfer">
+      <dl>
+        <dt>Based in</dt><dd>Florida, US</dd>
+        <dt>Open to</dt><dd>[Placeholder — consulting? full-time? speaking?]</dd>
+        <dt>Elsewhere</dt>
+        <dd>
+          <a href="https://github.com/Aaronrea" style="color:var(--accent);text-decoration:none">github.com/Aaronrea</a><br>
+          <a href="https://www.linkedin.com/in/aaronmrea/" style="color:var(--accent);text-decoration:none">linkedin.com/in/aaronmrea</a>
+        </dd>
+        <dt>Email</dt><dd class="mono" style="font-size:.85rem">[placeholder@domain]</dd>
+      </dl>
+    </aside>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span class="mono">© 2026 Aaron Rea <span class="sep">·</span> Built by <b>Websmith</b></span>
+    <span>
+      <a href="https://github.com/Aaronrea">GitHub</a> ·
+      <a href="https://www.linkedin.com/in/aaronmrea/">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>
